@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pipeline – Luana Gráfica</title>
+<style>
+  :root {
+    --bg: #F7F5F0; --surface: #FFFFFF; --surface2: #F0EDE6;
+    --ink: #1A1714; --ink2: #5C5549; --ink3: #9C9186;
+    --accent: #2D6A4F; --accent-light: #D8EEE3;
+    --accent2: #B7410E; --accent2-light: #FAE8E2;
+    --gold: #C9840A; --gold-light: #FDF3DC;
+    --blue: #1D4E89; --blue-light: #DCE9F7;
+    --border: #E2DDD6; --radius: 10px;
+    --font-display: 'Georgia','Times New Roman',serif;
+    --font-body: system-ui,-apple-system,sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); font-family: var(--font-body); color: var(--ink); min-height: 100vh; }
+
+  .header { background: var(--ink); color: #fff; padding: 1rem 1.5rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+  .logo { font-family: var(--font-display); font-size: 18px; font-weight: normal; letter-spacing: 0.03em; }
+  .logo span { color: var(--gold); }
+  .header-right { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .header-meta { font-size: 12px; color: rgba(255,255,255,0.45); }
+  .sync-pill { font-size: 11px; padding: 4px 12px; border-radius: 99px; background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.6); display: flex; align-items: center; gap: 5px; }
+  .sync-pill.ok { background: rgba(45,106,79,0.45); color: #7ee8b0; }
+  .sync-pill.err { background: rgba(183,65,14,0.45); color: #f9a07a; }
+  .sync-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+  .sync-dot.spin { animation: pulse 1.2s ease infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+  .metrics { display: grid; grid-template-columns: repeat(4,1fr); gap: 1px; background: var(--border); border-bottom: 1px solid var(--border); }
+  .metric { background: var(--surface); padding: 1rem 1.25rem; }
+  .metric-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink3); margin-bottom: 6px; }
+  .metric-value { font-family: var(--font-display); font-size: 26px; color: var(--ink); line-height: 1; }
+  .metric-sub { font-size: 12px; color: var(--ink3); margin-top: 4px; }
+
+  .main { padding: 1.25rem; max-width: 1200px; margin: 0 auto; }
+  .actions { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem; gap: 1rem; flex-wrap: wrap; }
+  .actions-left { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+
+  .btn { padding: 7px 14px; border-radius: var(--radius); border: 1.5px solid var(--border); background: var(--surface); color: var(--ink); font-size: 13px; cursor: pointer; font-family: var(--font-body); transition: all 0.15s; }
+  .btn:hover { background: var(--surface2); border-color: #ccc; }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn-primary { background: var(--accent); color: #fff; border-color: var(--accent); font-weight: 500; }
+  .btn-primary:hover:not(:disabled) { background: #255c43; }
+
+  input[type="text"], input[type="email"], input[type="tel"], input[type="number"], input[type="date"] {
+    padding: 8px 12px; border-radius: 8px; border: 1.5px solid var(--border);
+    background: var(--bg); color: var(--ink); font-size: 14px; font-family: var(--font-body); outline: none;
+  }
+  input:focus, select:focus, textarea:focus { border-color: var(--accent) !important; outline: none; }
+  #buscar { width: 200px; padding: 7px 12px; }
+
+  .kanban { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; align-items: start; }
+  .column { background: var(--surface2); border-radius: var(--radius); overflow: hidden; }
+  .col-header { padding: 0.75rem 1rem; display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid transparent; }
+  .col-title { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em; }
+  .col-count { font-size: 12px; color: var(--ink3); background: rgba(255,255,255,0.6); padding: 2px 8px; border-radius: 99px; }
+  .col-prospecto .col-header { border-bottom-color: var(--blue); }
+  .col-contactado .col-header { border-bottom-color: var(--gold); }
+  .col-propuesta .col-header { border-bottom-color: var(--accent2); }
+  .col-cerrado .col-header { border-bottom-color: var(--accent); }
+  .col-prospecto .col-title { color: var(--blue); }
+  .col-contactado .col-title { color: var(--gold); }
+  .col-propuesta .col-title { color: var(--accent2); }
+  .col-cerrado .col-title { color: var(--accent); }
+  .col-body { padding: 10px; display: flex; flex-direction: column; gap: 8px; min-height: 180px; }
+
+  .card { background: var(--surface); border-radius: 8px; border: 1px solid var(--border); padding: 0.9rem; cursor: pointer; transition: all 0.15s; }
+  .card:hover { box-shadow: 0 2px 12px rgba(0,0,0,0.08); transform: translateY(-1px); }
+  .card-name { font-size: 14px; font-weight: 600; color: var(--ink); margin-bottom: 2px; }
+  .card-company { font-size: 12px; color: var(--ink3); margin-bottom: 6px; }
+  .card-contact { font-size: 11px; color: var(--ink3); margin-bottom: 6px; }
+  .card-footer { display: flex; align-items: center; justify-content: space-between; margin-top: 8px; }
+  .card-value { font-family: var(--font-display); font-size: 15px; color: var(--ink); }
+  .card-date { font-size: 11px; color: var(--ink3); display: flex; align-items: center; gap: 4px; }
+
+  .tag { display: inline-block; padding: 2px 8px; border-radius: 99px; font-size: 11px; font-weight: 500; margin-right: 4px; }
+  .tag-diseño { background: var(--blue-light); color: var(--blue); }
+  .tag-impresion { background: var(--gold-light); color: var(--gold); }
+  .tag-branding { background: var(--accent2-light); color: var(--accent2); }
+  .tag-digital { background: var(--accent-light); color: var(--accent); }
+
+  .priority-dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
+  .p-alta { background: #E53935; }
+  .p-media { background: var(--gold); }
+  .p-baja { background: #90A4AE; }
+
+  .add-btn { width: 100%; padding: 8px; border: 1.5px dashed var(--border); background: transparent; border-radius: 8px; color: var(--ink3); font-size: 13px; cursor: pointer; font-family: var(--font-body); transition: all 0.15s; margin-top: 4px; }
+  .add-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
+
+  .empty-col { text-align: center; padding: 2rem 0.5rem; color: var(--ink3); font-size: 13px; line-height: 1.5; }
+
+  /* Modales */
+  .modal-bg { display: none; position: fixed; inset: 0; background: rgba(26,23,20,0.55); z-index: 100; align-items: flex-start; justify-content: center; padding: 1rem; overflow-y: auto; }
+  .modal-bg.open { display: flex; }
+  .modal { background: var(--surface); border-radius: 14px; padding: 1.5rem; width: 100%; max-width: 520px; box-shadow: 0 8px 32px rgba(0,0,0,0.2); margin: auto; }
+  .modal-title { font-family: var(--font-display); font-size: 20px; margin-bottom: 1.25rem; color: var(--ink); }
+  .form-section { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink3); margin: 1rem 0 0.6rem; padding-bottom: 4px; border-bottom: 1px solid var(--border); }
+  .form-group { margin-bottom: 0.85rem; }
+  .form-group label { display: block; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink3); margin-bottom: 4px; }
+  .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 8px 12px; border-radius: 8px; border: 1.5px solid var(--border); background: var(--bg); color: var(--ink); font-size: 14px; font-family: var(--font-body); }
+  .form-group textarea { resize: vertical; min-height: 64px; outline: none; }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 1.25rem; flex-wrap: wrap; }
+
+  .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 0.75rem; }
+  .detail-field .dl { font-size: 11px; text-transform: uppercase; letter-spacing: 0.07em; color: var(--ink3); margin-bottom: 2px; }
+  .detail-field .dv { font-size: 14px; color: var(--ink); }
+  .detail-field .dv a { color: var(--accent); text-decoration: none; }
+  .detail-field .dv a:hover { text-decoration: underline; }
+
+  .stage-select { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 1rem; }
+  .stage-btn { padding: 5px 14px; border-radius: 99px; border: 1.5px solid var(--border); background: transparent; font-size: 12px; cursor: pointer; font-family: var(--font-body); transition: all 0.12s; color: var(--ink); }
+  .stage-btn.active { border-color: var(--accent); background: var(--accent); color: #fff; }
+  .stage-btn:hover:not(.active) { border-color: var(--accent); color: var(--accent); }
+
+  /* Loading */
+  .loading-overlay { position: fixed; inset: 0; background: var(--bg); display: flex; align-items: center; justify-content: center; z-index: 200; flex-direction: column; gap: 16px; }
+  .spinner-lg { width: 40px; height: 40px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-text { font-size: 14px; color: var(--ink3); }
+  .loading-sub { font-size: 12px; color: var(--ink3); opacity: 0.6; }
+
+  /* Toast */
+  .toast { position: fixed; bottom: 1.5rem; left: 50%; transform: translateX(-50%); background: var(--ink); color: #fff; padding: 10px 20px; border-radius: 99px; font-size: 13px; opacity: 0; transition: opacity 0.3s; pointer-events: none; z-index: 300; white-space: nowrap; }
+  .toast.show { opacity: 1; }
+
+  @media (max-width: 750px) { .kanban { grid-template-columns: 1fr 1fr; } .metrics { grid-template-columns: 1fr 1fr; } }
+  @media (max-width: 480px) { .kanban { grid-template-columns: 1fr; } .form-row { grid-template-columns: 1fr; } .detail-grid { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+
+<div class="loading-overlay" id="loading">
+  <div class="spinner-lg"></div>
+  <div class="loading-text">Cargando pipeline de Luana Gráfica…</div>
+  <div class="loading-sub">Conectando con Google Sheets</div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<div class="header">
+  <div class="logo">Luana <span>Gráfica</span> — Pipeline</div>
+  <div class="header-right">
+    <div class="sync-pill" id="sync-pill">
+      <div class="sync-dot spin" id="sync-dot"></div>
+      <span id="sync-text">Conectando…</span>
+    </div>
+    <div class="header-meta" id="fecha-hoy"></div>
+  </div>
+</div>
+
+<div class="metrics">
+  <div class="metric">
+    <div class="metric-label">Total oportunidades</div>
+    <div class="metric-value" id="m-total">—</div>
+    <div class="metric-sub">en pipeline</div>
+  </div>
+  <div class="metric">
+    <div class="metric-label">Valor total</div>
+    <div class="metric-value" id="m-valor">—</div>
+    <div class="metric-sub">cotizado</div>
+  </div>
+  <div class="metric">
+    <div class="metric-label">En propuesta</div>
+    <div class="metric-value" id="m-propuesta">—</div>
+    <div class="metric-sub">por cerrar</div>
+  </div>
+  <div class="metric">
+    <div class="metric-label">Cerrados</div>
+    <div class="metric-value" id="m-cerrados">—</div>
+    <div class="metric-sub">en total</div>
+  </div>
+</div>
+
+<div class="main">
+  <div class="actions">
+    <div class="actions-left">
+      <input type="text" id="buscar" placeholder="Buscar cliente…" oninput="filtrar()">
+      <button class="btn" onclick="filtrarEtapa('')">Todas</button>
+      <button class="btn" onclick="filtrarEtapa('prospecto')">Prospectos</button>
+      <button class="btn" onclick="filtrarEtapa('propuesta')">Propuestas</button>
+      <button class="btn" onclick="cargarDatos(true)" title="Actualizar desde Google Sheets">↻ Sincronizar</button>
+    </div>
+    <button class="btn btn-primary" onclick="abrirNuevo()" id="btn-nuevo">+ Nueva oportunidad</button>
+  </div>
+
+  <div class="kanban">
+    <div class="column col-prospecto">
+      <div class="col-header"><span class="col-title">Prospecto</span><span class="col-count" id="cnt-prospecto">0</span></div>
+      <div class="col-body" id="col-prospecto"></div>
+      <div style="padding:0 10px 10px;"><button class="add-btn" onclick="abrirNuevo('prospecto')">+ Agregar</button></div>
+    </div>
+    <div class="column col-contactado">
+      <div class="col-header"><span class="col-title">Contactado</span><span class="col-count" id="cnt-contactado">0</span></div>
+      <div class="col-body" id="col-contactado"></div>
+      <div style="padding:0 10px 10px;"><button class="add-btn" onclick="abrirNuevo('contactado')">+ Agregar</button></div>
+    </div>
+    <div class="column col-propuesta">
+      <div class="col-header"><span class="col-title">Propuesta</span><span class="col-count" id="cnt-propuesta">0</span></div>
+      <div class="col-body" id="col-propuesta"></div>
+      <div style="padding:0 10px 10px;"><button class="add-btn" onclick="abrirNuevo('propuesta')">+ Agregar</button></div>
+    </div>
+    <div class="column col-cerrado">
+      <div class="col-header"><span class="col-title">Cerrado</span><span class="col-count" id="cnt-cerrado">0</span></div>
+      <div class="col-body" id="col-cerrado"></div>
+      <div style="padding:0 10px 10px;"><button class="add-btn" onclick="abrirNuevo('cerrado')">+ Agregar</button></div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal nueva / editar oportunidad -->
+<div class="modal-bg" id="modal-nuevo">
+  <div class="modal">
+    <div class="modal-title" id="modal-titulo">Nueva oportunidad</div>
+
+    <div class="form-section">Datos del cliente</div>
+    <div class="form-group">
+      <label>Cliente / Contacto *</label>
+      <input type="text" id="f-nombre" placeholder="Nombre completo">
+    </div>
+    <div class="form-group">
+      <label>Empresa</label>
+      <input type="text" id="f-empresa" placeholder="Nombre de la empresa">
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Celular</label>
+        <input type="tel" id="f-celular" placeholder="+57 300 000 0000">
+      </div>
+      <div class="form-group">
+        <label>Correo electrónico</label>
+        <input type="email" id="f-correo" placeholder="correo@empresa.com">
+      </div>
+    </div>
+    <div class="form-group">
+      <label>¿Por dónde llegó?</label>
+      <select id="f-fuente">
+        <option value="">Seleccionar…</option>
+        <option>Referido</option>
+        <option>Instagram</option>
+        <option>Facebook</option>
+        <option>WhatsApp</option>
+        <option>Llamada en frío</option>
+        <option>Página web</option>
+        <option>Cliente anterior</option>
+        <option>Feria / evento</option>
+        <option>Otro</option>
+      </select>
+    </div>
+
+    <div class="form-section">Detalles del negocio</div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Servicio</label>
+        <select id="f-tipo">
+          <option value="diseño">Diseño</option>
+          <option value="impresion">Impresión</option>
+          <option value="branding">Branding</option>
+          <option value="digital">Digital</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Prioridad</label>
+        <select id="f-prioridad">
+          <option value="alta">Alta</option>
+          <option value="media">Media</option>
+          <option value="baja">Baja</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Valor cotización ($)</label>
+        <input type="number" id="f-valor" placeholder="0" min="0">
+      </div>
+      <div class="form-group">
+        <label>Forma de pago</label>
+        <select id="f-pago">
+          <option value="">Seleccionar…</option>
+          <option>Contado</option>
+          <option>50% anticipo / 50% entrega</option>
+          <option>Crédito 30 días</option>
+          <option>Crédito 60 días</option>
+          <option>Cuotas</option>
+          <option>Por definir</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Tiempo de entrega</label>
+        <select id="f-entrega">
+          <option value="">Seleccionar…</option>
+          <option>1–3 días</option>
+          <option>1 semana</option>
+          <option>2 semanas</option>
+          <option>3 semanas</option>
+          <option>1 mes</option>
+          <option>Más de 1 mes</option>
+          <option>Por definir</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Cierre estimado</label>
+        <input type="date" id="f-fecha">
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Etapa</label>
+      <select id="f-etapa">
+        <option value="prospecto">Prospecto</option>
+        <option value="contactado">Contactado</option>
+        <option value="propuesta">Propuesta</option>
+        <option value="cerrado">Cerrado</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Notas</label>
+      <textarea id="f-notas" placeholder="Detalles del cliente o del proyecto…"></textarea>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn" onclick="cerrarModal('modal-nuevo')">Cancelar</button>
+      <button class="btn btn-primary" id="btn-guardar" onclick="guardarOportunidad()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal detalle -->
+<div class="modal-bg" id="modal-detalle">
+  <div class="modal">
+    <div class="modal-title" id="d-nombre"></div>
+    <div class="detail-grid">
+      <div class="detail-field"><div class="dl">Empresa</div><div class="dv" id="d-empresa"></div></div>
+      <div class="detail-field"><div class="dl">¿Por dónde llegó?</div><div class="dv" id="d-fuente"></div></div>
+      <div class="detail-field"><div class="dl">Celular</div><div class="dv" id="d-celular"></div></div>
+      <div class="detail-field"><div class="dl">Correo</div><div class="dv" id="d-correo"></div></div>
+      <div class="detail-field"><div class="dl">Cotización</div><div class="dv" id="d-valor"></div></div>
+      <div class="detail-field"><div class="dl">Forma de pago</div><div class="dv" id="d-pago"></div></div>
+      <div class="detail-field"><div class="dl">Entrega</div><div class="dv" id="d-entrega"></div></div>
+      <div class="detail-field"><div class="dl">Cierre estimado</div><div class="dv" id="d-fecha"></div></div>
+    </div>
+    <div class="detail-field" id="d-notas-wrap" style="margin-bottom:0.75rem;">
+      <div class="dl">Notas</div>
+      <div class="dv" id="d-notas" style="white-space:pre-wrap;font-size:13px;color:var(--ink2);"></div>
+    </div>
+    <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.07em;color:var(--ink3);margin-bottom:6px;">Mover a etapa</div>
+    <div class="stage-select" id="d-stages"></div>
+    <div class="modal-actions">
+      <button class="btn" style="color:#c0392b;border-color:#f5c6c6;" onclick="eliminarActual()">Eliminar</button>
+      <button class="btn" onclick="editarActual()">Editar</button>
+      <button class="btn btn-primary" onclick="cerrarModal('modal-detalle')">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const SHEETS_URL = 'https://script.google.com/macros/s/AKfycbykBb7DzObTH21VtKNxpj50QjdXl-zeVEUsHWTnyot0IP5fK-QpYFqIjVk4I-WDiXF-/exec';
+const ETAPAS = ['prospecto','contactado','propuesta','cerrado'];
+const COLS = ['id','nombre','empresa','celular','correo','fuente','tipo','prioridad','valor','pago','entrega','fecha','etapa','notas','creado'];
+
+let oportunidades = [];
+let idActual = null;
+let editandoId = null;
+let filtroEtapa = '';
+let guardando = false;
+
+// ── Utilidades ──
+function fmt(v) { return v && Number(v) ? '$' + Number(v).toLocaleString('es-CO') : '—'; }
+function fmtFecha(f) { if (!f) return '—'; const [y,m,d] = String(f).split('-'); return d+'/'+m+'/'+y; }
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
+
+function toast(msg, dur=2500) {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), dur);
+}
+
+function setSyncStatus(estado, texto) {
+  const pill = document.getElementById('sync-pill');
+  const dot = document.getElementById('sync-dot');
+  const txt = document.getElementById('sync-text');
+  pill.className = 'sync-pill' + (estado ? ' '+estado : '');
+  dot.className = 'sync-dot' + (estado === '' ? ' spin' : '');
+  txt.textContent = texto;
+}
+
+// ── Google Sheets (JSONP para evitar CORS) ──
+function jsonp(url) {
+  return new Promise((resolve, reject) => {
+    const cb = 'cb_' + Date.now() + '_' + Math.random().toString(36).slice(2);
+    const script = document.createElement('script');
+    const timeout = setTimeout(() => {
+      delete window[cb]; script.remove();
+      reject(new Error('Timeout'));
+    }, 12000);
+    window[cb] = (data) => {
+      clearTimeout(timeout); delete window[cb]; script.remove();
+      resolve(data);
+    };
+    script.src = url + (url.includes('?') ? '&' : '?') + 'callback=' + cb;
+    script.onerror = () => { clearTimeout(timeout); delete window[cb]; script.remove(); reject(new Error('Error de red')); };
+    document.head.appendChild(script);
+  });
+}
+
+async function leerSheets() {
+  const json = await jsonp(SHEETS_URL + '?action=leer');
+  if (!json.ok) throw new Error('Error leyendo');
+  const rows = json.data;
+  if (!rows || rows.length < 2) return [];
+  return rows.slice(1).map(r => {
+    const o = {};
+    COLS.forEach((c,i) => o[c] = r[i] !== undefined ? String(r[i]) : '');
+    return o;
+  }).filter(o => o.id);
+}
+
+async function escribirSheets(datos) {
+  const rows = [COLS];
+  datos.forEach(o => rows.push(COLS.map(c => o[c] || '')));
+  const payload = encodeURIComponent(JSON.stringify(rows));
+  const json = await jsonp(SHEETS_URL + '?action=escribir&payload=' + payload);
+  if (!json.ok) throw new Error('Error guardando');
+}
+
+async function cargarDatos(manual=false) {
+  setSyncStatus('', 'Sincronizando…');
+  try {
+    oportunidades = await leerSheets();
+    setSyncStatus('ok', '✓ Conectado');
+    render();
+    if (manual) toast('✓ Datos actualizados desde Google Sheets');
+  } catch(e) {
+    setSyncStatus('err', 'Sin conexión');
+    if (manual) toast('Error al conectar con Google Sheets');
+  }
+}
+
+async function guardarEnSheets() {
+  if (guardando) return;
+  guardando = true;
+  setSyncStatus('', 'Guardando…');
+  try {
+    await escribirSheets(oportunidades);
+    setSyncStatus('ok', '✓ Guardado');
+    toast('✓ Guardado en Google Sheets');
+  } catch(e) {
+    setSyncStatus('err', 'Error al guardar');
+    toast('⚠ No se pudo guardar. Intenta de nuevo.');
+  }
+  guardando = false;
+}
+
+// ── Render ──
+function render(query='') {
+  ETAPAS.forEach(e => {
+    const col = document.getElementById('col-'+e);
+    col.innerHTML = '';
+    let lista = oportunidades.filter(o => o.etapa === e);
+    if (filtroEtapa && filtroEtapa !== e) {
+      document.getElementById('cnt-'+e).textContent = 0;
+      return;
+    }
+    if (query) lista = lista.filter(o =>
+      (o.nombre||'').toLowerCase().includes(query) ||
+      (o.empresa||'').toLowerCase().includes(query) ||
+      (o.celular||'').includes(query)
+    );
+    if (lista.length === 0) {
+      col.innerHTML = '<div class="empty-col">Sin clientes aquí.<br>Usa el botón + para agregar.</div>';
+      document.getElementById('cnt-'+e).textContent = 0;
+      return;
+    }
+    lista.forEach(o => {
+      const div = document.createElement('div');
+      div.className = 'card';
+      const contacto = [o.celular, o.correo].filter(Boolean).join(' · ');
+      div.innerHTML =
+        '<div class="card-name">'+esc(o.nombre)+'</div>'+
+        '<div class="card-company">'+(o.empresa||'—')+'</div>'+
+        (contacto ? '<div class="card-contact">'+esc(contacto)+'</div>' : '')+
+        '<div style="margin-bottom:6px;">'+
+          '<span class="tag tag-'+(o.tipo||'diseño')+'">'+cap(o.tipo||'diseño')+'</span>'+
+          (o.fuente ? '<span style="font-size:11px;color:var(--ink3);">'+esc(o.fuente)+'</span>' : '')+
+        '</div>'+
+        '<div class="card-footer">'+
+          '<div class="card-value">'+fmt(o.valor)+'</div>'+
+          '<div class="card-date"><span class="priority-dot p-'+(o.prioridad||'media')+'" style="margin-right:4px;"></span>'+(o.entrega||fmtFecha(o.fecha)||'—')+'</div>'+
+        '</div>';
+      div.onclick = () => abrirDetalle(o.id);
+      col.appendChild(div);
+    });
+    document.getElementById('cnt-'+e).textContent = lista.length;
+  });
+  actualizarMetricas();
+}
+
+function actualizarMetricas() {
+  const total = oportunidades.length;
+  const valor = oportunidades.reduce((s,o) => s + Number(o.valor||0), 0);
+  const prop = oportunidades.filter(o => o.etapa === 'propuesta').length;
+  const cerr = oportunidades.filter(o => o.etapa === 'cerrado').length;
+  document.getElementById('m-total').textContent = total;
+  document.getElementById('m-valor').textContent = valor ? '$'+valor.toLocaleString('es-CO') : '$0';
+  document.getElementById('m-propuesta').textContent = prop;
+  document.getElementById('m-cerrados').textContent = cerr;
+}
+
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function cap(s) { return s ? s.charAt(0).toUpperCase()+s.slice(1) : ''; }
+
+// ── Filtros ──
+function filtrar() { render(document.getElementById('buscar').value.toLowerCase()); }
+function filtrarEtapa(e) { filtroEtapa = e; filtrar(); }
+
+// ── Formulario ──
+function limpiarForm() {
+  ['f-nombre','f-empresa','f-celular','f-correo','f-notas'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
+  document.getElementById('f-valor').value = '';
+  document.getElementById('f-fecha').value = '';
+  document.getElementById('f-fuente').value = '';
+  document.getElementById('f-tipo').value = 'diseño';
+  document.getElementById('f-prioridad').value = 'media';
+  document.getElementById('f-pago').value = '';
+  document.getElementById('f-entrega').value = '';
+}
+
+function abrirNuevo(etapa='prospecto') {
+  editandoId = null;
+  limpiarForm();
+  document.getElementById('f-etapa').value = etapa;
+  document.getElementById('modal-titulo').textContent = 'Nueva oportunidad';
+  document.getElementById('btn-guardar').textContent = 'Guardar';
+  document.getElementById('modal-nuevo').classList.add('open');
+  setTimeout(() => document.getElementById('f-nombre').focus(), 100);
+}
+
+function editarActual() {
+  const o = oportunidades.find(x => x.id === idActual);
+  if (!o) return;
+  editandoId = o.id;
+  cerrarModal('modal-detalle');
+  limpiarForm();
+  document.getElementById('modal-titulo').textContent = 'Editar oportunidad';
+  document.getElementById('btn-guardar').textContent = 'Actualizar';
+  ['nombre','empresa','celular','correo','fuente','tipo','prioridad','valor','pago','entrega','fecha','etapa','notas'].forEach(k => {
+    const el = document.getElementById('f-'+k);
+    if (el) el.value = o[k] || '';
+  });
+  document.getElementById('modal-nuevo').classList.add('open');
+}
+
+async function guardarOportunidad() {
+  const nombre = document.getElementById('f-nombre').value.trim();
+  if (!nombre) { toast('Ingresa el nombre del cliente.'); return; }
+  const campos = ['nombre','empresa','celular','correo','fuente','tipo','prioridad','valor','pago','entrega','fecha','etapa','notas'];
+  const datos = {};
+  campos.forEach(k => { datos[k] = (document.getElementById('f-'+k).value||'').trim(); });
+  if (editandoId) {
+    const idx = oportunidades.findIndex(x => x.id === editandoId);
+    if (idx >= 0) oportunidades[idx] = { ...oportunidades[idx], ...datos };
+  } else {
+    oportunidades.push({ id: uid(), creado: new Date().toISOString().slice(0,10), ...datos });
+  }
+  cerrarModal('modal-nuevo');
+  render();
+  await guardarEnSheets();
+}
+
+function abrirDetalle(id) {
+  const o = oportunidades.find(x => x.id === id);
+  if (!o) return;
+  idActual = id;
+  document.getElementById('d-nombre').textContent = o.nombre;
+  document.getElementById('d-empresa').textContent = o.empresa || '—';
+  document.getElementById('d-fuente').textContent = o.fuente || '—';
+  document.getElementById('d-celular').innerHTML = o.celular ? '<a href="tel:'+o.celular+'">'+esc(o.celular)+'</a>' : '—';
+  document.getElementById('d-correo').innerHTML = o.correo ? '<a href="mailto:'+o.correo+'">'+esc(o.correo)+'</a>' : '—';
+  document.getElementById('d-valor').textContent = fmt(o.valor);
+  document.getElementById('d-pago').textContent = o.pago || '—';
+  document.getElementById('d-entrega').textContent = o.entrega || '—';
+  document.getElementById('d-fecha').textContent = fmtFecha(o.fecha);
+  document.getElementById('d-notas').textContent = o.notas || '';
+  document.getElementById('d-notas-wrap').style.display = o.notas ? 'block' : 'none';
+  document.getElementById('d-stages').innerHTML = ETAPAS.map(e =>
+    '<button class="stage-btn '+(o.etapa===e?'active':'')+'" onclick="moverEtapa(\''+e+'\')">'+cap(e)+'</button>'
+  ).join('');
+  document.getElementById('modal-detalle').classList.add('open');
+}
+
+async function moverEtapa(etapa) {
+  const o = oportunidades.find(x => x.id === idActual);
+  if (o) { o.etapa = etapa; }
+  document.querySelectorAll('.stage-btn').forEach(b =>
+    b.classList.toggle('active', b.textContent.toLowerCase() === etapa)
+  );
+  render();
+  await guardarEnSheets();
+}
+
+async function eliminarActual() {
+  if (!confirm('¿Eliminar este cliente del pipeline? Esta acción no se puede deshacer.')) return;
+  oportunidades = oportunidades.filter(x => x.id !== idActual);
+  cerrarModal('modal-detalle');
+  render();
+  await guardarEnSheets();
+}
+
+function cerrarModal(id) { document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.modal-bg').forEach(m => {
+  m.addEventListener('click', e => { if (e.target === m) m.classList.remove('open'); });
+});
+
+// ── Init ──
+async function init() {
+  document.getElementById('fecha-hoy').textContent =
+    new Date().toLocaleDateString('es-CO',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+  await cargarDatos();
+  document.getElementById('loading').style.display = 'none';
+  // Auto-sincronizar cada 60 segundos
+  setInterval(() => cargarDatos(), 60000);
+}
+
+init();
+</script>
+</body>
+</html>
